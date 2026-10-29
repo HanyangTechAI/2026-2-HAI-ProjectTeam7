@@ -1,123 +1,132 @@
 # 2026-2-HAI-ProjectTeam7
 
-## Deepfake Detection: Generalization to Unseen Manipulations
+## Deepfake Detection: Training Diversity & Unseen Generalization
 
-**학습 데이터의 다양성이 딥페이크 탐지 모델의 일반화 성능에 미치는 영향 분석**
+**제한된 학습 데이터에서 조작 기법의 다양성이 딥페이크 탐지 모델의 일반화 성능에 미치는 영향 분석**
 
-본 프로젝트는 DF40 데이터셋을 활용하여 딥페이크 영상 탐지 모델을 구현하고, 학습 과정에서 접하지 못한 조작 기법(Unseen Manipulation)에 대한 일반화 성능을 분석하는 것을 목표로 한다.
+본 프로젝트는 DF40 데이터셋을 활용해 사전학습된 CNN 기반 Real/Fake 분류 모델을 Fine-tuning하고, 학습 데이터의 조작 기법 구성에 따라 미학습 기법(Unseen Manipulation) 탐지 성능이 어떻게 달라지는지 분석한다.
 
-사전학습된 CNN 및 ViT 모델을 Fine-tuning하고, 학습 데이터의 조작 기법 다양성(Training Diversity)에 따른 탐지 성능 차이를 비교한다.
+특히 **고정된 학습 데이터 예산**에서 단일 기법 학습과 다중 기법 학습을 비교하고, 일반화 성능의 변화와 기존 기법(Seen)에 대한 성능 저하 가능성을 함께 평가한다.
 
-## 1. 문제 정의 및 연구 목표
+> **현재 상태 (2026-10-29): 기획 및 실험 설계 단계.** 실제 DF40 데이터 검증, 모델 학습, 성능 측정은 아직 진행하지 않았다.
 
-딥페이크 생성 기술이 발전하면서 다양한 조작 기법이 등장하고 있다. 기존 탐지 모델은 학습에 사용된 조작 기법에서는 높은 정확도를 보이더라도, 새로운 조작 기법에 대해서는 성능이 저하될 수 있다.
+## 1. Motivation & Research Questions
 
-이에 다음 연구 질문을 중심으로 프로젝트를 진행한다.
+특정 딥페이크 생성 기법으로 학습한 탐지기는 학습에 사용하지 않은 생성 기법에서 성능이 저하될 수 있다. 모든 새로운 기법의 데이터를 사전에 확보하기 어렵기 때문에, **같은 양의 데이터로 학습할 때 어떤 구성 전략이 새로운 조작 기법에 유리한가**를 알아볼 필요가 있다.
 
-- **RQ1 (핵심):** 학습 데이터의 조작 기법 다양성이 Unseen Manipulation 탐지 성능에 어떤 영향을 미치는가?
-- **RQ2 (확장):** CNN과 ViT 기반 모델은 일반화 성능에서 어떤 차이를 보이는가?
-- **RQ3 (선택):** 압축 및 해상도 변화가 탐지 성능에 미치는 영향은 무엇인가?
+- **RQ1 (핵심):** 전체 학습 데이터 수가 같을 때 단일 기법 학습과 다중 기법 학습은 Unseen 탐지 성능에서 어떤 차이를 보이는가?
+- **RQ2 (핵심):** 다중 기법 학습은 공통 Seen 기법의 성능을 희생하면서 Unseen 성능을 개선하는가? (Trade-off)
+- **RQ3 (확장):** CNN과 ViT를 사용하면 위 결과가 달라지는가?
 
-## 2. 데이터셋 — DF40
+본 프로젝트는 새로운 SOTA 탐지기를 제안하기보다는 **DF40 Face Swapping 환경에서 데이터 구성 전략을 재현 가능하게 비교·분석하는 Data-centric 실험**을 목표로 한다.
 
-NeurIPS 2024에 발표된 **DF40** 데이터셋을 사용한다.
+## 2. Dataset — DF40
 
-DF40은 Face Swapping(10), Face Reenactment(13), Entire Face Synthesis(12), Face Editing(5)의 총 40개 조작 기법을 포함한다.
+DF40 (NeurIPS 2024)은 총 40개의 조작 기법을 포함한다: Face Swapping(10), Face Reenactment(13), Entire Face Synthesis(12), Face Editing(5).
 
-초기에는 영상 단위 탐지를 목표로 **Face Swapping(FS)** 유형의 일부 조작 기법을 사용한다.
+영상 기반 딥페이크 탐지를 목표로 초기 실험은 **Face Swapping (FS)** 유형으로 범위를 제한한다.
 
-| 구분 | 조작 기법 후보 |
+| 용도 | 후보 기법 |
 |---|---|
-| Training | SimSwap, FaceSwap, FSGAN |
-| Unseen Test | BlendFace |
+| 학습 | SimSwap / FaceSwap / FSGAN |
+| 공통 Seen Test | SimSwap (학습에 사용하지 않은 별도 원본 영상) |
+| 공통 Unseen Test | BlendFace, InSwapper (학습 및 모델 선택에 미사용) |
 
-*실제 사용할 subset과 데이터 규모는 접근성 및 파일 구조 확인 후 확정한다.*
+**유의사항:** 기법과 표본 수는 데이터 접근성을 확인한 뒤 확정한다. DF40에서 배포하는 전처리 이미지 중 일부는 Fake만 포함하므로 대응하는 Real 데이터와 원본 영상 ID를 별도로 확보·검증해야 한다.
 
-## 3. 모델 및 처리 파이프라인
+초기에는 FF++ 출처를 통일해 **조작 기법 차이**를 우선 비교하고, 다른 출처(Celeb-DF)로의 일반화는 별도 확장 과제로 둔다.
 
-**Video → Frame Extraction → Face Detection/Cropping → Pretrained Model → Frame-level Prediction → Video-level Prediction**
+## 3. Model & Pipeline
 
-초기에는 DF40에서 제공하는 얼굴 crop 이미지를 활용하여 Frame-level 분류 모델을 학습하고, 이후 프레임별 Fake 확률을 집계해 Video-level Detection으로 확장한다.
+`Video → Frame Extraction / Face Cropping → Pretrained CNN → Frame-level Fake Score → (확장) Video-level Aggregation`
 
-| 모델 | 역할 |
-|---|---|
-| EfficientNet-B0 | CNN Baseline |
-| ViT-B/16 | Transformer 비교 모델 (확장) |
-| Xception | 딥페이크 탐지 선행연구 참고 |
+초기에는 DF40의 전처리된 얼굴 crop 이미지로 **Frame-level Binary Classification**을 수행한다. 사전학습된 이미지 분류기의 분류층을 Real/Fake 목적에 맞게 변경한 뒤 Fine-tuning한다.
 
-사전학습 모델의 분류층을 이진 분류에 맞게 수정하여 Fine-tuning을 진행할 계획이다.
+| 모델 | 역할 | 진행 상태 |
+|---|---|---|
+| EfficientNet-B0 | 기본 CNN Baseline | 구현 예정 |
+| ViT-B/16 | Transformer 모델 비교 | 선택적 확장 |
+| Xception | DF40 및 기존 탐지 연구의 참고 Baseline | 선행연구 참고 |
 
-## 4. 실험 설계
+**사용 AI 분야:** Computer Vision, Supervised Deep Learning, Transfer Learning / Fine-tuning, Domain Generalization.
 
-### Experiment 1. CNN Baseline
+## 4. Experimental Design
 
-- 특정 조작 기법의 Real/Fake 데이터로 CNN Fine-tuning
-- Seen / Unseen Manipulation에 대한 성능 비교
-- ROC-AUC, F1-score, Accuracy 측정
+### Exp 1. CNN Baseline
 
-### Experiment 2. Training Diversity (핵심 실험)
+- DF40 Face Swapping subset에서 EfficientNet-B0로 Real/Fake Fine-tuning
+- 학습·검증 Loss와 프레임 단위 평가 지표 확인
+- 동일한 모델에 대해 Seen과 Unseen 기법별 성능 기록
 
-학습 데이터의 전체 샘플 수를 통제한 상태에서 조작 기법의 다양성을 변경한다.
+### Exp 2. Training Diversity — Core Experiment
 
-- **Case A:** 단일 조작 기법으로 학습
-- **Case B:** 복수 조작 기법으로 학습
-- 동일한 Unseen Test Set에서 일반화 성능 비교
+**Fake 이미지 수 및 Real 이미지 수를 각각 고정**하고, 학습 Fake 이미지의 조작 기법 구성을 바꾼다.
 
-### Experiment 3. CNN vs ViT (확장)
+| 조건 | Fake 학습 데이터 예시 | 총 Fake 수(예시) |
+|---|---|---:|
+| Case A — Single | SimSwap 3,000장 | 3,000 |
+| Case B — Multiple | SimSwap 1,000장 + FaceSwap 1,000장 + FSGAN 1,000장 | 3,000 |
 
-동일한 데이터 분할 및 평가 조건에서 CNN과 ViT의 Seen/Unseen 성능을 비교한다.
+*수치는 설명을 위한 예시이며 확정된 데이터 규모가 아니다. 각 조건에 동일한 수의 Real 이미지도 사용한다.*
 
-### Experiment 4. Video-level Detection (확장)
+두 조건에서 **동일한 Seen Test(SimSwap)** 와 **동일한 Unseen Test(BlendFace, InSwapper)** 를 사용한다.
 
-프레임별 Fake 확률을 평균하여 영상 단위 판별 결과를 생성하고, 프레임별 의심도를 시각화한다.
+주요 결과는 기법별 ROC-AUC, F1, Accuracy와 Case A/B 간 성능 차이이다. Seen/Unseen 성능 차이도 참고하되, 테스트 기법의 난도 자체가 다르므로 차이를 단독으로 인과 해석하지 않는다.
 
-**실험 규칙**
-- 원본 영상 및 파생 데이터 간 Data Leakage 방지
-- Train / Validation / Test 분리
-- Test Set을 모델 튜닝에 사용하지 않음
-- 동일 조건 비교를 위한 Seed 및 학습 설정 기록
+### Exp 3. CNN vs ViT — Optional
 
-## 5. 개발 현황
+동일한 데이터 분할과 평가 프로토콜을 유지하며 모델 구조에 따른 일반화 성능을 비교한다.
 
-현재는 **프로젝트 기획 및 실험 설계 단계**이며, 실제 모델 학습과 성능 평가는 진행 전이다.
+### Exp 4. Video-level Detection — Optional
+
+동일 영상에서 추출한 프레임의 Fake 확률을 평균해 영상 단위 점수를 산출하고, 프레임별 점수 변화를 시각화한다.
+
+프레임 점수는 조작 위치의 정답 라벨이 아니라 **모델의 예측 결과**임을 명시한다.
+
+### Evaluation Protocol
+
+1. 원본 영상 및 파생된 Fake 영상의 식별자를 기준으로 Train / Validation / Test 간 누수를 방지한다.
+2. Case A/B의 **학습 Fake 수, Real 수, Real 원본 출처, 전처리 방식, 모델과 학습 설정**을 가능한 한 동일하게 유지한다. 원본 영상 수와 프레임 추출 간격도 기록한다.
+3. 모델 선택·임계값 결정은 Validation에서만 하고, 공통 Unseen Test는 최종 평가에만 사용한다.
+4. 공통 Seen Test는 두 Case가 모두 학습한 SimSwap의 **별도 영상**으로 구성한다.
+5. ROC-AUC를 우선 보고하며 F1·Accuracy의 임계값과 클래스 비율을 함께 기록한다.
+6. 가능하다면 여러 조작 기법 조합 및 3개 이상의 Random Seed로 반복하여 평균과 표준편차를 제시한다.
+7. 결과는 '다양성의 순수한 인과효과'가 아니라 **고정 데이터 예산에서 선택한 학습 구성 전략의 비교 결과**로 해석한다.
+
+## 5. Current Progress
 
 | 항목 | 상태 |
 |---|---|
-| 프로젝트 주제 및 연구 방향 설정 | 완료 |
-| DF40 데이터셋 선정 | 완료 |
-| CNN / ViT 기반 모델 구조 논의 | 완료 |
-| Seen / Unseen 실험 방향 설계 | 초안 작성 |
-| 데이터 다운로드 및 전처리 | 예정 |
-| CNN Baseline Fine-tuning | 예정 |
-| 일반화 성능 평가 | 예정 |
-| ViT 비교 및 Video-level 확장 | 예정 |
+| 프로젝트 주제 및 연구 질문 선정 | 완료 |
+| DF40 데이터셋 및 모델 후보 선정 | 완료 |
+| 실험 통제 조건과 평가 프로토콜 | 설계 초안 |
+| GitHub README 및 개발 계획 | 문서화 |
+| 실제 DF40 샘플 확보·로딩 | 미진행 |
+| CNN Fine-tuning 및 성능 평가 | 미진행 |
+| Training Diversity 실험 | 미진행 |
+| ViT / Video-level 시각화 | 선택적 확장 |
 
-## 6. 개발 계획
+## 6. Roadmap
 
-| 단계 | 목표 | 산출물 |
+| 단계 | 목표 | 확인할 산출물 |
 |---|---|---|
-| Step 1 | DF40 Subset 확보 및 데이터 검증 | 데이터 로딩 파이프라인 |
-| Step 2 | CNN Baseline Fine-tuning | 학습 코드 및 Loss 그래프 |
-| Step 3 | Seen / Unseen 성능 평가 | ROC-AUC, F1 결과표 |
-| Step 4 | Training Diversity 비교 | 일반화 성능 비교 그래프 |
-| Step 5 | CNN / ViT 비교 | 모델별 성능 분석 |
-| Step 6 | Video-level Detection | 프레임별 확률 시각화 및 데모 |
+| Step 1 | DF40 subset 접근 및 Real/Fake 매칭 검증 | 샘플 목록, 원본 영상 ID, DataLoader 출력 |
+| Step 2 | CNN Baseline Fine-tuning | 실행 코드, Checkpoint, Loss 로그 |
+| Step 3 | Seen / Unseen 평가 | 기법별 ROC-AUC·F1 결과표 |
+| Step 4 | Single vs Multiple 학습 비교 | 성능 비교 그래프, Seen/Unseen Trade-off 분석 |
+| Step 5 (선택) | ViT 비교 | 동일 조건 모델 비교표 |
+| Step 6 (선택) | Video-level 시각화 | 영상 점수 및 프레임별 확률 그래프 |
 
-**Step 1~4를 핵심 개발 범위**로 설정하며, 진행 상황에 따라 Step 5~6으로 확장한다.
-
-## 7. 예상 결과물
-
-- CNN 기반 딥페이크 탐지 모델
-- Seen / Unseen Manipulation 성능 비교
-- Training Diversity에 따른 일반화 성능 분석
-- CNN / ViT 비교 실험 (확장)
-- 영상 단위 탐지 및 프레임별 확률 시각화 (확장)
+**필수 목표: Step 1–4.** 데이터 및 GPU 확보 상황에 따라 Step 5–6을 확장한다.
 
 ## References
 
-- [DF40: Toward Next-Generation Deepfake Detection (NeurIPS 2024)](https://github.com/YZY-stack/DF40)
-- [DeepfakeBench](https://github.com/SCLBD/DeepfakeBench)
+1. [DF40: Toward Next-Generation Deepfake Detection](https://github.com/YZY-stack/DF40) — NeurIPS 2024.
+2. [Community Forensics: Using Thousands of Generators to Train Fake Image Detectors](https://openaccess.thecvf.com/content/CVPR2025/html/Park_Community_Forensics_Using_Thousands_of_Generators_to_Train_Fake_Image_CVPR_2025_paper.html) — CVPR 2025.
+3. [D³: Scaling Up Deepfake Detection by Learning from Discrepancy](https://openaccess.thecvf.com/content/CVPR2025/html/Yang_D3_Scaling_Up_Deepfake_Detection_by_Learning_from_Discrepancy_CVPR_2025_paper.html) — CVPR 2025.
+4. [Deepfake Detection that Generalizes Across Benchmarks (GenD)](https://cispa.de/en/research/publications/104500-deepfake-detection-that-generalizes-across-benchmarks) — WACV 2026.
+5. [DeepfakeBench](https://github.com/SCLBD/DeepfakeBench) — 구현 및 평가 참고 프레임워크.
 
 ---
 
-*2026.10.29 중간발표 기준 프로젝트 계획. 실제 구현 및 실험 진행에 따라 업데이트 예정.*
+*2026-10-29 중간발표용 설계 초안. 실제 데이터 검증 및 구현 결과에 따라 갱신한다.*
