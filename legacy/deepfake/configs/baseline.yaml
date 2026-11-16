@@ -1,0 +1,30 @@
+# 초기 설정 예시입니다. 실제 데이터와 실행 환경에 맞게 수정하세요.
+seed: 42
+
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  train_manifest: data/processed/train.csv
+  val_manifest: data/processed/val.csv
+  test_manifest: data/processed/test.csv
+  image_size: 224
+  num_workers: 0
+
+model:
+  name: efficientnet_b0
+  pretrained: true
+  num_classes: 2
+
+train:
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  device: auto
+  checkpoint_dir: checkpoints
+  run_dir: runs
+
+evaluate:
+  checkpoint: checkpoints/best.pt
+  threshold: 0.5
+  output_dir: runs/evaluation

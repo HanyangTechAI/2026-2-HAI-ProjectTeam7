@@ -1,0 +1,47 @@
+# 설정 계약 초안: 코드에서 로딩하는 기능은 TODO입니다.
+seed: 42
+experiment: manual  # manual 또는 fusion; 동일 설정으로 비교
+
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  class_map: manifests/class_map.csv
+  manifest: manifests/manifest.csv
+  split_manifest: manifests/split_manifest.csv
+  sequence_length: 32
+  num_workers: 0
+  keypoint_source: aihub  # mediapipe는 별도 어댑터 구현 후 사용
+  manual_joints: null  # 실제 JSON 분석 후 확정
+  fusion_joints: null
+  channels: null  # 좌표와 confidence를 구분해 확정
+  schema_version: null
+  normalization: null  # train 기준 통계 및 얼굴·머리 정보 보존 정책 확정 필요
+
+split:
+  group_by: signer_id
+  linked_group: recording_group_id  # 동일 수행의 다각도·파생 자료를 묶는 논리 필드
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+model:
+  name: gru  # 대안: cnn1d (모두 미구현)
+  num_classes: null  # class_map 확정 후 설정
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+
+train:
+  batch_size: 32
+  epochs: 30
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  loss: cross_entropy
+  device: auto
+  checkpoint_dir: checkpoints
+  run_dir: runs
+
+evaluate:
+  checkpoint: null  # 실험별 실제 체크포인트 지정
+  metrics: [accuracy, macro_f1, per_class_precision, per_class_recall, confusion_matrix]
+  output_dir: runs/evaluation

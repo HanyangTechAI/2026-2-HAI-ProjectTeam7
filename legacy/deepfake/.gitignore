@@ -1,0 +1,10 @@
+data/raw/
+data/processed/
+processed/
+checkpoints/
+runs/
+*.pt
+*.pth
+*.npz
+.env
+__pycache__/
