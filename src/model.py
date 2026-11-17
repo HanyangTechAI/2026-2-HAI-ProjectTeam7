@@ -9,3 +9,5 @@ def build_model(name="gru", *, num_classes, input_size, hidden_size=128,
     """
     # TODO: GRU 또는 1D CNN 및 분류층 구현
     raise NotImplementedError("수어 시계열 분류 모델을 구현해야 합니다.")
+
+#dkdkdkkdkdkdk
