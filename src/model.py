@@ -34,29 +34,27 @@ class GRUClassifier(nn.Module):
     def forward(self, x):
         """
         입력:
-            x: (B, T, J, C)
+            x: (B, T, F)
 
         출력:
             logits: (B, num_classes)
         """
 
-        if x.ndim != 4:
+        if x.ndim != 3:
             raise ValueError(
-                f"입력은 (B, T, J, C) 형태여야 합니다. "
+                f"입력은 (B, T, F) 형태여야 합니다. "
                 f"현재 형태: {tuple(x.shape)}"
             )
 
-        batch_size, num_frames, num_joints, num_coords = x.shape
+        batch_size, num_frames, num_features = x.shape
 
-        if num_joints * num_coords != self.input_size:
+        if num_features != self.input_size:
             raise ValueError(
                 f"J*C는 input_size와 같아야 합니다. "
-                f"J*C={num_joints * num_coords}, "
+                f"F={num_features}, "
                 f"input_size={self.input_size}"
             )
 
-        # (B, T, J, C) → (B, T, J*C)
-        x = x.reshape(batch_size, num_frames, self.input_size)
 
         # h_n: (num_layers * 2, B, hidden_size)
         _, h_n = self.gru(x)
@@ -88,7 +86,7 @@ def build_model(
     num_layers=2,
     dropout=0.2,
 ):
-    """(B, T, J, C)를 받아 (B, num_classes) logits을 출력하는 모델."""
+    """(B, T, F)를 받아 (B, num_classes) logits을 출력하는 모델."""
 
     if name.lower() == "gru":
         return GRUClassifier(
@@ -102,3 +100,26 @@ def build_model(
     raise ValueError(
         f"지원하지 않는 모델: {name!r}. 현재는 'gru'만 지원합니다."
     )
+    
+if __name__ == "__main__":
+    model = build_model(
+        name="gru",
+        input_size=126,    
+        hidden_size=128,
+        num_classes=10,    
+    )
+    x = torch.randn(4, 32, 126)
+
+    labels = torch.randint(0, 10, (4,))
+
+    logits = model(x)
+    print("출력 크기:", logits.shape)
+
+    criterion = nn.CrossEntropyLoss()
+    loss = criterion(logits, labels)
+    print("손실:", loss.item())
+
+    loss.backward()
+
+    print("GRU 가중치 기울기:", model.gru.weight_ih_l0.grad.shape)
+    print("Forward / Backward 테스트 완료!")
