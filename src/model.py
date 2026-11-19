@@ -21,7 +21,7 @@ class GRUClassifier(nn.Module):
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
-            bidirectional=True, ##실시간 한프레임씩 들어오면 False로 바꿀필요있음
+            bidirectional=True, ##실시간 한프레임씩 들어오면 False로 바꿀필요있음 (그치만 기본 양방향~)
             dropout=dropout if num_layers > 1 else 0.0,
         )
         self.dropout = nn.Dropout(dropout)
