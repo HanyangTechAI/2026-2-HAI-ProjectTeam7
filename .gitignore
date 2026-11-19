@@ -1,10 +1,46 @@
+# Local datasets and supplied metadata (preserve files; no automatic Git tracking)
 data/raw/
 data/processed/
+data/final_p0_p3_submission/
 processed/
+data/**/*.json
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Tensors, weights and training outputs
 checkpoints/
 runs/
 *.pt
 *.pth
 *.npz
+*.npy
+*.safetensors
+*.ckpt
+*.log
+*.tfevents.*
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.7z
+*.rar
+
+# Secrets and local environments
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+.venv/
+venv/
+
+# Python and OS caches
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
