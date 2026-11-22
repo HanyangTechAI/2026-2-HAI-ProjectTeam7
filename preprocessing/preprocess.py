@@ -48,6 +48,38 @@ def load_video_keypoints(folder_path, video_id):
 
     return bodies, faces, left_hands, right_hands
 
+def normalize_keypoints(bodies, faces, left_hands, right_hands):
+    # 원본 데이터가 변경되지 않도록 복사
+    bodies = bodies.copy()
+    faces = faces.copy()
+    left_hands = left_hands.copy()
+    right_hands = right_hands.copy()
+
+    # BODY_25 기준: 오른쪽 어깨 2, 왼쪽 어깨 5
+    right_shoulder = bodies[:, 2, :2]
+    left_shoulder = bodies[:, 5, :2]
+
+    # 프레임별 어깨 중심 계산
+    center = (right_shoulder + left_shoulder) / 2
+
+    # 프레임별 어깨 너비 계산
+    scale = np.linalg.norm(
+        right_shoulder - left_shoulder,
+        axis=1
+    )
+
+    # 어깨 너비가 0이거나 비정상적인 경우 오류 방지
+    if not np.all(np.isfinite(scale) & (scale > 1e-6)):
+        raise ValueError("정규화할 수 없는 어깨 좌표가 있습니다.")
+
+    # 몸, 얼굴, 손 모두 동일한 기준으로 정규화
+    for points in [bodies, faces, left_hands, right_hands]:
+        points[:, :, :2] = (
+            points[:, :, :2] - center[:, None, :]
+        ) / scale[:, None, None]
+
+    return bodies, faces, left_hands, right_hands
+
 def make_model_input(bodies, faces, left_hands, right_hands, mode="manual"):
     if mode == "manual":
         result = np.concatenate(
@@ -88,6 +120,10 @@ if __name__ == "__main__":
 
         bodies, faces, left_hands, right_hands = load_video_keypoints(
             data_dir, video_id
+        )
+
+        bodies, faces, left_hands, right_hands = normalize_keypoints(
+            bodies, faces, left_hands, right_hands
         )
 
         manual = make_model_input(
