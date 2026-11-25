@@ -1,0 +1,7 @@
+
+# 원본 수어 데이터 (GitHub 업로드 제외)
+data/
+
+# Python 임시 파일
+__pycache__/
+*.pyc
