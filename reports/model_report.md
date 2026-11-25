@@ -36,3 +36,32 @@ Forward / Backward 테스트 완료!
 - 웹캠 입력, 키포인트 추출 및 실시간 예측 연결은 현재 모델 코드에 포함되지 않음.
 
 
+## 2026-11-25 작업 내역
+
+### 완료한 작업
+
+- GRU 출력으로 Gloss 클래스를 예측하는 코드 확인
+- CrossEntropyLoss 및 AdamW Optimizer 적용 확인
+- Training/Validation Loop 구현 확인
+- 더미 데이터로 2 epoch 학습·검증 실행
+- Forward/Backward 및 파라미터 갱신 과정이 오류 없이 실행되는 것 확인
+
+### 테스트 환경 및 결과
+
+- 실행 장치: CPU
+- 입력 크기: `(T=32, F=126)`
+- 클래스 수: 10개
+- 실행 명령어: `python -m src.train --dummy --epochs 2`
+
+| Epoch | Train Loss | Train Accuracy | Validation Loss | Validation Accuracy |
+|---|---:|---:|---:|---:|
+| 1 | 2.2860 | 0.125 | 2.3262 | 0.125 |
+| 2 | 2.1185 | 0.547 | 2.3498 | 0.000 |
+
+> 위 결과는 무작위 더미 데이터로 학습·검증한 결과이며, 실제 수어 인식 성능을 의미하지 않습니다.
+
+### 남은 작업
+
+- AI Hub 수어 데이터 이용 조건 및 파일 구조 확인
+- 실제 데이터 확보 후 키포인트와 Gloss 라벨 연결
+- 실제 데이터로 학습·검증 및 평가 진행
